@@ -1,0 +1,9 @@
+services:
+    _defaults:
+        public: true
+        autowire: true
+        autoconfigure: true
+
+    test.representation_serializer:
+        alias: Lingoda\SentryBundle\Sentry\RepresentationSerializer
+        public: true

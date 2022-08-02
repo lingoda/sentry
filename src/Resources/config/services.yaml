@@ -1,0 +1,28 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Lingoda\SentryBundle\:
+        resource: '../../*'
+        exclude: '../../{Resources}'
+
+    Sentry\Monolog\Handler:
+        arguments:
+            $hub: '@Sentry\State\HubInterface'
+            $bubble: false
+
+    Sentry\Integration\IgnoreErrorsIntegration:
+        arguments:
+            $options:
+                ignore_exceptions:
+                    - Symfony\Component\Messenger\Exception\RejectRedeliveredMessageException
+
+    Lingoda\SentryBundle\Sentry\RepresentationSerializer:
+        arguments:
+            $options: '@sentry.client.options'
+
+    Lingoda\SentryBundle\Sentry\Serializer\NamespaceJsonSerializer: ~
+
+    Monolog\Processor\PsrLogMessageProcessor:
+        tags: { name: monolog.processor, handler: sentry }

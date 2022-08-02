@@ -1,0 +1,6 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Method Lingoda\\\\SentryBundle\\\\DependencyInjection\\\\LingodaSentryExtension\\:\\:loadInternal\\(\\) throws checked exception Exception but it's missing from the PHPDoc @throws tag\\.$#"
+			count: 1
+			path: src/DependencyInjection/LingodaSentryExtension.php

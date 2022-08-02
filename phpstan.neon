@@ -1,0 +1,3 @@
+includes:
+    - ../../linters/phpstan.neon
+    - phpstan.baseline.neon

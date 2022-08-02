@@ -1,0 +1,28 @@
+framework:
+    secret: 's3cr3t'
+    serializer:
+        enable_annotations: true
+
+doctrine:
+    dbal:
+        default_connection: default
+        connections:
+            default:
+                url: 'sqlite:///:memory:'
+                profiling: true
+                charset: UTF8
+
+    orm:
+        default_entity_manager: default
+        auto_generate_proxy_classes: true
+        naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
+        auto_mapping: true
+
+lingoda_sentry:
+    dsn: 'https://user@test.ingest.sentry.io/1'
+    environment: 'test'
+    namespace: 'lingoda-sentry'
+    release: '1'
+    traces_sample_rate: 0.01
+    namespace_serialize:
+        - Lingoda\SentryBundle\Tests\Sentry\Serializer
