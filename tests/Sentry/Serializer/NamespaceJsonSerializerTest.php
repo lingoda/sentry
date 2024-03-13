@@ -17,7 +17,7 @@ final class NamespaceJsonSerializerTest extends KernelTestCase
         parent::setUp();
         self::bootKernel();
 
-        $serializer = self::$container->get('test.representation_serializer');
+        $serializer = self::getContainer()->get('test.representation_serializer');
         self::assertInstanceOf(RepresentationSerializer::class, $serializer);
 
         $this->serializer = $serializer;
@@ -32,7 +32,7 @@ final class NamespaceJsonSerializerTest extends KernelTestCase
         );
 
         self::assertSame(
-            'Object Lingoda\SentryBundle\Tests\TestNamespaceObject',
+            'Object Lingoda\SentryBundle\Tests\TestNamespaceObject(#1)',
             $this->serializer->representationSerialize(new TestNamespaceObject(1)),
             'Not in defined namespaces'
         );
