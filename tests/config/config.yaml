@@ -2,6 +2,7 @@ framework:
     secret: 's3cr3t'
     serializer:
         enable_annotations: true
+    test: true
 
 doctrine:
     dbal:
