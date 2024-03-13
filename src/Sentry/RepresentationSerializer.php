@@ -6,23 +6,29 @@ namespace Lingoda\SentryBundle\Sentry;
 
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\Mapping\ClassMetadata;
+use Doctrine\Persistence\Mapping\MappingException;
 use Lingoda\SentryBundle\Sentry\Serializer\NamespaceJsonSerializer;
+use ReflectionException;
 use Sentry\Options;
 use Sentry\Serializer\RepresentationSerializer as BaseRepresentationSerializer;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
-use Webmozart\Assert\Assert;
 
 /*
  * Overwrites Sentry's RepresentationSerializer
- * We want to serialize objects (entities especially) in a way, that will help us for debugging
- * (sending objects's ids)
+ * We want to serialize objects in a way, that will help us with debugging
  */
 class RepresentationSerializer extends BaseRepresentationSerializer
 {
     private EntityManagerInterface $entityManager;
     private PropertyAccessor $propertyAccessor;
     private NamespaceJsonSerializer $namespaceJsonSerializer;
+
+    /**
+     * @var array<string, ClassMetadata>
+     */
+    private array $loadedClassMetadata = [];
 
     public function __construct(
         Options $options,
@@ -39,29 +45,20 @@ class RepresentationSerializer extends BaseRepresentationSerializer
     /**
      * @return string|array<string, mixed>
      */
-    protected function serializeValue($value)
+    protected function serializeValue($value): array|string
     {
-        switch (true) {
-            case $this->isEntity($value):
-                return $this->serializeEntity($value);
-            case $value instanceof DateTimeInterface:
-                return $this->serializeDateTime($value);
-            case $this->namespaceJsonSerializer->inNamespace($value):
-                return ($this->namespaceJsonSerializer)($value);
-            default:
-                return parent::serializeValue($value);
-        }
-    }
-
-    private function serializeDateTime(DateTimeInterface $value): string
-    {
-        return $value->format(DateTimeInterface::ATOM);
+        return match (true) {
+            $this->isEntity($value) => $this->serializeEntity($value),
+            $value instanceof DateTimeInterface => $this->serializeDateTime($value),
+            $this->namespaceJsonSerializer->inNamespace($value) => ($this->namespaceJsonSerializer)($value),
+            default => parent::serializeValue($value),
+        };
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function serializeEntity(object $value): array
+    protected function serializeEntity(object $value): array
     {
         $data = $this->extractIdentifiers($value);
 
@@ -71,22 +68,13 @@ class RepresentationSerializer extends BaseRepresentationSerializer
         ];
     }
 
-    /**
-     * @param mixed $value
-     *
-     * @return mixed
-     */
-    private function extractIdentifiers($value)
+    protected function extractIdentifiers(mixed $value): mixed
     {
         if (!$this->isEntity($value)) {
             return $value;
         }
 
-        $classString = \get_class($value);
-
-        Assert::notFalse($classString);
-
-        $metadata = $this->entityManager->getClassMetadata($classString);
+        $metadata = $this->getClassMetadataFor(\get_class($value));
         $identifiers = $metadata->getIdentifierFieldNames();
 
         $data = [];
@@ -98,13 +86,31 @@ class RepresentationSerializer extends BaseRepresentationSerializer
         return $data;
     }
 
-    /**
-     * @param mixed $value
-     */
-    private function isEntity($value): bool
+    protected function isEntity(mixed $value): bool
     {
-        return \is_object($value) &&
-            (mb_strpos(\get_class($value), 'App\\Entity\\') === 0
-                || mb_strpos(\get_class($value), 'Proxies\\__CG__\\App\Entity\\') === 0);
+        return \is_object($value)
+            && $this->getClassMetadataFor(\get_class($value)) !== null;
+    }
+
+    private function serializeDateTime(DateTimeInterface $value): string
+    {
+        return $value->format(DateTimeInterface::ATOM);
+    }
+
+    private function getClassMetadataFor(string $className): ?ClassMetadata
+    {
+        $className = ltrim($className, '\\');
+        if (isset($this->loadedClassMetadata[$className])) {
+            return $this->loadedClassMetadata[$className];
+        }
+
+        try {
+            $metadata = $this->entityManager->getClassMetadata($className);
+        } catch (MappingException|ReflectionException) {
+            $metadata = null;
+        }
+        $this->loadedClassMetadata[$className] = $metadata;
+
+        return $metadata;
     }
 }

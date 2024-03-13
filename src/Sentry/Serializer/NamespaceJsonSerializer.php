@@ -12,17 +12,15 @@ final class NamespaceJsonSerializer
      * @param string[] $namespaces
      */
     public function __construct(
-        private array $namespaces,
-        private ObjectJsonSerializer $objectJsonSerializer
+        private readonly array $namespaces,
+        private readonly ObjectJsonSerializer $objectJsonSerializer
     ) {
     }
 
     /**
-     * @param object $object
-     *
-     * @return array{json: string}
+     *  @return array{json: string}
      */
-    public function __invoke($object): array
+    public function __invoke(object $object): array
     {
         if (!$this->inNamespace($object)) {
             throw new \RuntimeException(sprintf('\'%s\' is not in serializable namespace', $object::class));
@@ -31,10 +29,7 @@ final class NamespaceJsonSerializer
         return ($this->objectJsonSerializer)($object);
     }
 
-    /**
-     * @param mixed $object
-     */
-    public function inNamespace($object): bool
+    public function inNamespace(mixed $object): bool
     {
         if (!\is_object($object)) {
             return false;

@@ -4,9 +4,10 @@ declare(strict_types = 1);
 
 namespace Lingoda\SentryBundle\Sentry;
 
-use DateTimeImmutable;
 use Monolog\Handler\HandlerInterface;
-use Monolog\Logger;
+use Monolog\Level;
+use Monolog\LogRecord;
+use Psr\Log\LogLevel;
 use function Sentry\addBreadcrumb;
 use Sentry\Breadcrumb;
 use Sentry\Monolog\Handler as SentryHandler;
@@ -19,17 +20,6 @@ class Handler implements HandlerInterface
 {
     private const MAX_SPLIT_CHARS = 1000;
 
-    private const BREADCRUMB_LEVELS = [
-        Logger::DEBUG => Breadcrumb::LEVEL_DEBUG,
-        Logger::INFO => Breadcrumb::LEVEL_INFO,
-        Logger::NOTICE => Breadcrumb::LEVEL_INFO,
-        Logger::WARNING => Breadcrumb::LEVEL_WARNING,
-        Logger::ERROR => Breadcrumb::LEVEL_ERROR,
-        Logger::CRITICAL => Breadcrumb::LEVEL_FATAL,
-        Logger::ALERT => Breadcrumb::LEVEL_FATAL,
-        Logger::EMERGENCY => Breadcrumb::LEVEL_FATAL,
-    ];
-
     private SentryHandler $decoratedHandler;
 
     public function __construct(SentryHandler $decoratedHandler)
@@ -37,46 +27,18 @@ class Handler implements HandlerInterface
         $this->decoratedHandler = $decoratedHandler;
     }
 
-    /**
-     * @param array{level: 100|200|250|300|400|500|550|600} $record
-     */
-    public function isHandling(array $record): bool
+    public function isHandling(LogRecord $record): bool
     {
         return $this->decoratedHandler->isHandling($record);
     }
 
-    /**
-     * @param array{
-     *     message: string,
-     *     context?: array<string, mixed>,
-     *     level: 100|200|250|300|400|500|550|600,
-     *     level_name: 'ALERT'|'CRITICAL'|'DEBUG'|'EMERGENCY'|'ERROR'|'INFO'|'NOTICE'|'WARNING',
-     *     channel: string,
-     *     datetime: DateTimeImmutable,
-     *     extra: array<string, mixed>
-     * } $record
-     */
-    public function handle(array $record): bool
+    public function handle(LogRecord $record): bool
     {
-        if (!isset($record['context'])) {
-            $record['context'] = [];
-        }
-
         return $this->decoratedHandler->handle($record);
     }
 
     /**
      * Send everything as breadcrumb and the last of the highest as event
-     *
-     * @param array{
-     *     message: string,
-     *     context?: array<string, mixed>,
-     *     level: 100|200|250|300|400|500|550|600,
-     *     level_name: 'ALERT'|'CRITICAL'|'DEBUG'|'EMERGENCY'|'ERROR'|'INFO'|'NOTICE'|'WARNING',
-     *     channel: string,
-     *     datetime: DateTimeImmutable,
-     *     extra: array<string, mixed>
-     * }[] $records
      */
     public function handleBatch(array $records): void
     {
@@ -86,27 +48,23 @@ class Handler implements HandlerInterface
 
         $highestRecord = reset($records);
         foreach ($records as $record) {
-            $messages = mb_str_split($record['message'], self::MAX_SPLIT_CHARS);
+            $messages = mb_str_split($record->message, self::MAX_SPLIT_CHARS);
 
             foreach ($messages as $message) {
                 addBreadcrumb(
                     new Breadcrumb(
-                            $this->getSentryLevel($record['level']),
-                            Breadcrumb::TYPE_DEFAULT,
-                            $record['channel'],
-                            $message,
-                            $record['context'] ?? []
-                        )
+                        $this->getSentryLevel($record->level),
+                        Breadcrumb::TYPE_DEFAULT,
+                        $record->channel,
+                        $message,
+                        $record->context
+                    )
                 );
             }
 
-            if ($highestRecord['level'] <= $record['level']) {
+            if ($highestRecord->level->includes($record->level)) {
                 $highestRecord = $record;
             }
-        }
-
-        if (!isset($highestRecord['context'])) {
-            $highestRecord['context'] = [];
         }
 
         $this->decoratedHandler->handle($highestRecord);
@@ -120,8 +78,15 @@ class Handler implements HandlerInterface
     /**
      * Translates the Monolog level into the Sentry breadcrumbs level.
      */
-    private function getSentryLevel(int $monologLevel): string
+    private function getSentryLevel(Level $monologLevel): string
     {
-        return self::BREADCRUMB_LEVELS[$monologLevel] ?? Breadcrumb::LEVEL_INFO;
+        return match ($monologLevel->toPsrLogLevel()) {
+            LogLevel::DEBUG => Breadcrumb::LEVEL_DEBUG,
+            LogLevel::WARNING => Breadcrumb::LEVEL_WARNING,
+            LogLevel::ERROR => Breadcrumb::LEVEL_ERROR,
+            LogLevel::CRITICAL, LogLevel::EMERGENCY, LogLevel::ALERT => Breadcrumb::LEVEL_FATAL,
+            // includes also LogLevel::INFO, LogLevel::NOTICE
+            default => Breadcrumb::LEVEL_INFO,
+        };
     }
 }

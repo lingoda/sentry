@@ -12,7 +12,7 @@
         "symfony/config": "^5.4 || ^6.0 || ^7.0",
         "symfony/dependency-injection": "^5.4 || ^6.0 || ^7.0",
         "symfony/framework-bundle": "^5.4 || ^6.0 || ^7.0",
-        "symfony/monolog-bundle": "^3.6",
+        "symfony/monolog-bundle": "^3.8",
         "symfony/property-access": "^5.4 || ^6.0 || ^7.0",
         "symfony/security-core": "^5.4 || ^6.0 || ^7.0",
         "symfony/serializer": "^5.4 || ^6.0 || ^7.0",
@@ -32,7 +32,8 @@
         "symfony/phpunit-bridge": "^6.1"
     },
     "conflict": {
-        "monolog/monolog": "<2 || >=3"
+        "monolog/monolog": "<3.0",
+        "symfony/monolog-bridge": "<6.1"
     },
     "config": {
         "preferred-install": {
