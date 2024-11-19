@@ -12,12 +12,6 @@ services:
             $hub: '@Sentry\State\HubInterface'
             $bubble: false
 
-    Sentry\Integration\IgnoreErrorsIntegration:
-        arguments:
-            $options:
-                ignore_exceptions:
-                    - Symfony\Component\Messenger\Exception\RejectRedeliveredMessageException
-
     Lingoda\SentryBundle\Sentry\RepresentationSerializer:
         arguments:
             $options: '@sentry.client.options'
