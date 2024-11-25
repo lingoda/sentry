@@ -5,8 +5,8 @@ sentry:
         capture_soft_fails: false
     options:
         default_integrations: true
-        send_attempts: 3
+#        send_attempts: 3
         attach_stacktrace: true
         send_default_pii: true
-        integrations:
-            - Sentry\Integration\IgnoreErrorsIntegration
+        ignore_exceptions:
+            - Symfony\Component\Messenger\Exception\RejectRedeliveredMessageException
