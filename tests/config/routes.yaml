@@ -1,0 +1,4 @@
+test:
+    path: /
+    controller: Lingoda\SentryBundle\Tests\Controller\TestController::index
+    methods: GET
