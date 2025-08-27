@@ -34,3 +34,9 @@ lingoda_sentry:
     traces_sample_rate: 0.01
     namespace_serialize:
         - Lingoda\SentryBundle\Tests\Sentry\Serializer
+monolog:
+    handlers:
+        sentry:
+            type: service
+            level: error
+            id: Lingoda\SentryBundle\Sentry\Handler

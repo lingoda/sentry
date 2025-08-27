@@ -7,3 +7,8 @@ services:
     test.representation_serializer:
         alias: Lingoda\SentryBundle\Sentry\RepresentationSerializer
         public: true
+
+    Lingoda\SentryBundle\Tests\Sentry\TestHandler:
+        decorates: Lingoda\SentryBundle\Sentry\Handler
+    Lingoda\SentryBundle\Tests\Controller\TestController:
+        tags: ['controller.service_arguments']
