@@ -1,2 +1,15 @@
-includes:
-	- ../../linters/phpstan.test.neon
+parameters:
+    tmpDir: .phpstan-cache
+    level: 8
+    checkMissingCallableSignature: true
+    checkFunctionNameCase: true
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - tests
+    excludePaths:
+        analyseAndScan:
+            - tests/var (?)
+            - tests/config/reference.php (?)
+    exceptions:
+        check:
+            missingCheckedExceptionInThrows: false

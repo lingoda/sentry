@@ -44,6 +44,9 @@ class TestHandler implements HandlerInterface
         $this->decoratedHandler->close();
     }
 
+    /**
+     * @return LogRecord[]
+     */
     public function getRecords(): array
     {
         return $this->records;

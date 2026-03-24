@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Lingoda\SentryBundle\Sentry\Serializer;
 
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
@@ -20,6 +21,8 @@ class ObjectJsonSerializer
 
     /**
      * @return array{json: string}
+     *
+     * @throws ExceptionInterface
      */
     public function __invoke(object $message): array
     {

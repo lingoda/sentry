@@ -5,6 +5,7 @@ declare(strict_types = 1);
 namespace Lingoda\SentryBundle\Sentry\Serializer;
 
 use ReflectionClass;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 
 final class NamespaceJsonSerializer
 {
@@ -18,7 +19,9 @@ final class NamespaceJsonSerializer
     }
 
     /**
-     *  @return array{json: string}
+     * @return array{json: string}
+     *
+     * @throws ExceptionInterface
      */
     public function __invoke(object $object): array
     {
