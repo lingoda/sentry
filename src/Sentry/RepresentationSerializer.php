@@ -10,10 +10,12 @@ use Doctrine\Persistence\Mapping\ClassMetadata;
 use Doctrine\Persistence\Mapping\MappingException;
 use Lingoda\SentryBundle\Sentry\Serializer\NamespaceJsonSerializer;
 use ReflectionException;
+use Webmozart\Assert\Assert;
 use Sentry\Options;
 use Sentry\Serializer\RepresentationSerializer as BaseRepresentationSerializer;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
 
 /*
  * Overwrites Sentry's RepresentationSerializer
@@ -26,7 +28,7 @@ class RepresentationSerializer extends BaseRepresentationSerializer
     private NamespaceJsonSerializer $namespaceJsonSerializer;
 
     /**
-     * @var array<string, ClassMetadata>
+     * @var array<string, ClassMetadata<object>|null>
      */
     private array $loadedClassMetadata = [];
 
@@ -44,6 +46,8 @@ class RepresentationSerializer extends BaseRepresentationSerializer
 
     /**
      * @return string|array<string, mixed>
+     *
+     * @throws ExceptionInterface
      */
     protected function serializeValue($value): array|string
     {
@@ -70,11 +74,12 @@ class RepresentationSerializer extends BaseRepresentationSerializer
 
     protected function extractIdentifiers(mixed $value): mixed
     {
-        if (!$this->isEntity($value)) {
+        if (!\is_object($value) || !$this->isEntity($value)) {
             return $value;
         }
 
-        $metadata = $this->getClassMetadataFor(\get_class($value));
+        $metadata = $this->getClassMetadataFor($value::class);
+        Assert::notNull($metadata);
         $identifiers = $metadata->getIdentifierFieldNames();
 
         $data = [];
@@ -97,14 +102,20 @@ class RepresentationSerializer extends BaseRepresentationSerializer
         return $value->format(DateTimeInterface::ATOM);
     }
 
+    /**
+     * @param class-string $className
+     *
+     * @return ClassMetadata<object>|null
+     */
     private function getClassMetadataFor(string $className): ?ClassMetadata
     {
         $className = ltrim($className, '\\');
-        if (isset($this->loadedClassMetadata[$className])) {
+        if (\array_key_exists($className, $this->loadedClassMetadata)) {
             return $this->loadedClassMetadata[$className];
         }
 
         try {
+            Assert::classExists($className);
             $metadata = $this->entityManager->getClassMetadata($className);
         } catch (MappingException|ReflectionException) {
             $metadata = null;

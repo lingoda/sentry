@@ -1,3 +1,20 @@
 includes:
-    - ../../linters/phpstan.neon
     - phpstan.baseline.neon
+parameters:
+    tmpDir: .phpstan-cache
+    level: 8
+    checkMissingCallableSignature: true
+    checkFunctionNameCase: true
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
+    paths:
+        - src
+    exceptions:
+        check:
+            missingCheckedExceptionInThrows: true
+            tooWideThrowType: true
+        uncheckedExceptionClasses:
+            - RuntimeException
+            - LogicException
+            - Doctrine\DBAL\Exception
+            - Doctrine\ORM\ORMException
