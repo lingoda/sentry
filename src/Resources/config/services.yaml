@@ -18,6 +18,13 @@ services:
 
     Lingoda\SentryBundle\Sentry\Serializer\NamespaceJsonSerializer: ~
 
+    # Default before_send scrubber. Override by either decorating this service
+    # or by setting lingoda_sentry.before_send to your own service id.
+    Lingoda\SentryBundle\Sentry\SensitiveDataScrubber:
+        arguments:
+            $queryParamNames: '%lingoda_sentry.scrubber.query_param_names%'
+            $valuePatterns: '%lingoda_sentry.scrubber.value_patterns%'
+
     Monolog\Processor\PsrLogMessageProcessor:
         tags: { name: monolog.processor, handler: sentry }
 
