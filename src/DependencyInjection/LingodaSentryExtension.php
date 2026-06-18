@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace Lingoda\SentryBundle\DependencyInjection;
 
+use Lingoda\SentryBundle\Sentry\SensitiveDataScrubber;
 use Lingoda\SentryBundle\Sentry\Serializer\ObjectJsonSerializer;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -23,6 +24,24 @@ class LingodaSentryExtension extends ConfigurableExtension implements PrependExt
             __DIR__ . '/../Resources/config'
         ));
         $loader->load('services.yaml');
+
+        /** @var array{enabled: bool, query_param_names: list<string>, extra_query_param_names: list<string>, value_patterns: list<string>, extra_value_patterns: list<string>} $scrubber */
+        $scrubber = $mergedConfig['scrubber'];
+
+        $container->setParameter(
+            'lingoda_sentry.scrubber.query_param_names',
+            array_values(array_unique(array_merge(
+                $scrubber['query_param_names'],
+                $scrubber['extra_query_param_names'],
+            ))),
+        );
+        $container->setParameter(
+            'lingoda_sentry.scrubber.value_patterns',
+            array_values(array_unique(array_merge(
+                $scrubber['value_patterns'],
+                $scrubber['extra_value_patterns'],
+            ))),
+        );
     }
 
     public function prepend(ContainerBuilder $container): void
@@ -49,6 +68,18 @@ class LingodaSentryExtension extends ConfigurableExtension implements PrependExt
             $config['json_serialize'],
             ObjectJsonSerializer::class
         );
+
+        $beforeSend = $config['before_send'];
+        if ($beforeSend === null && $config['scrubber']['enabled'] === true) {
+            $beforeSend = SensitiveDataScrubber::class;
+        }
+        if ($beforeSend !== null) {
+            $sentryConfig['options']['before_send'] = $beforeSend;
+        }
+
+        if ($config['before_breadcrumb'] !== null) {
+            $sentryConfig['options']['before_breadcrumb'] = $config['before_breadcrumb'];
+        }
 
         $container->setParameter('lingoda_sentry.config', $config);
         $container->prependExtensionConfig('sentry', $sentryConfig);
