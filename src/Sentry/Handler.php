@@ -11,6 +11,8 @@ use Psr\Log\LogLevel;
 use function Sentry\addBreadcrumb;
 use Sentry\Breadcrumb;
 use Sentry\Monolog\Handler as SentryHandler;
+use Sentry\State\Scope;
+use function Sentry\withScope;
 
 /**
  * Decorates the official sentry handler to send all logs as breadcrumbs
@@ -67,12 +69,67 @@ class Handler implements HandlerInterface
             }
         }
 
-        $this->decoratedHandler->handle($highestRecord);
+        $this->sendAsEvent($highestRecord);
     }
 
     public function close(): void
     {
         $this->decoratedHandler->close();
+    }
+
+    /**
+     * Records carrying a real Throwable produce an event with a meaningful
+     * stack trace and group correctly out of the box, so they are forwarded
+     * untouched.
+     *
+     * Message-only records are the problem: without an exception, the
+     *`attach_stacktrace` option makes the SDK backfill the stack trace of the
+     * Monolog flush path. That stack is identical for every such event,
+     * and Sentry groups by it, so unrelated errors collapse into a single issue.
+     * Pin an explicit fingerprint built from the log identity instead so each
+     * distinct error gets its own issue.
+     */
+    private function sendAsEvent(LogRecord $record): void
+    {
+        if ($this->hasException($record)) {
+            $this->decoratedHandler->handle($record);
+
+            return;
+        }
+
+        withScope(function (Scope $scope) use ($record): void {
+            $scope->setFingerprint([
+                'monolog',
+                $record->channel,
+                $record->level->getName(),
+                $this->groupingKey($record->message),
+            ]);
+
+            $this->decoratedHandler->handle($record);
+        });
+    }
+
+    private function hasException(LogRecord $record): bool
+    {
+        return ($record->context['exception'] ?? null) instanceof \Throwable;
+    }
+
+    /**
+     * Reduces a log message to a stable grouping key by replacing volatile
+     * tokens (uuids, opaque ids, hex, integers) with placeholders, so the same
+     * logical error groups together while genuinely different messages stay
+     * apart.
+     */
+    private function groupingKey(string $message): string
+    {
+        $patterns = [
+            '/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i' => '{uuid}',
+            '/(?=[A-Za-z0-9_\-]{21,})[A-Za-z0-9_\-]*[0-9][A-Za-z0-9_\-]*/'        => '{id}',
+            '/\b[0-9a-f]{16,}\b/i'                                                => '{hex}',
+            '/\b\d+\b/'                                                           => '{n}',
+        ];
+
+        return trim((string) preg_replace(array_keys($patterns), array_values($patterns), $message));
     }
 
     /**
