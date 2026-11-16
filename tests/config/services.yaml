@@ -16,3 +16,5 @@ services:
     # Spy `before_send` used by HandlerFingerprintTest to capture the events
     # (with their applied fingerprints) Sentry would otherwise send.
     Lingoda\SentryBundle\Tests\Sentry\RecordingBeforeSend: ~
+
+    Lingoda\SentryBundle\Tests\Sentry\Fixture\InternalUserIdResolver: ~

@@ -13,6 +13,7 @@ use Sentry\Event;
 use Sentry\ExceptionDataBag;
 use Sentry\Frame;
 use Sentry\Stacktrace;
+use Sentry\UserDataBag;
 
 class SensitiveDataScrubberSpec extends ObjectBehavior
 {
@@ -27,6 +28,50 @@ class SensitiveDataScrubberSpec extends ObjectBehavior
     public function it_is_initializable(): void
     {
         $this->shouldHaveType(SensitiveDataScrubber::class);
+    }
+
+    public function it_keeps_the_user_ip_by_default(): void
+    {
+        $event = Event::createEvent();
+        $event->setUser(UserDataBag::createFromUserIpAddress('203.0.113.7')->setId('42'));
+
+        $this->__invoke($event)->getUser()->getIpAddress()->shouldBe('203.0.113.7');
+    }
+
+    public function it_removes_the_user_ip_when_send_ip_is_off(): void
+    {
+        $this->beConstructedWith(
+            Configuration::DEFAULT_QUERY_PARAM_NAMES,
+            Configuration::DEFAULT_VALUE_PATTERNS,
+            false,
+        );
+        $event = Event::createEvent();
+        $event->setUser(UserDataBag::createFromUserIpAddress('203.0.113.7')->setId('42'));
+
+        $user = $this->__invoke($event)->getUser();
+        $user->getIpAddress()->shouldBe(null);
+        $user->getId()->shouldBe('42');
+    }
+
+    public function it_removes_the_request_ip_when_send_ip_is_off(): void
+    {
+        $this->beConstructedWith(
+            Configuration::DEFAULT_QUERY_PARAM_NAMES,
+            Configuration::DEFAULT_VALUE_PATTERNS,
+            false,
+        );
+        $event = Event::createEvent();
+        $event->setRequest(['url' => 'https://example.com/', 'env' => ['REMOTE_ADDR' => '203.0.113.7']]);
+
+        $this->__invoke($event)->getRequest()->shouldBe(['url' => 'https://example.com/']);
+    }
+
+    public function it_keeps_the_request_ip_by_default(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest(['url' => 'https://example.com/', 'env' => ['REMOTE_ADDR' => '203.0.113.7']]);
+
+        $this->__invoke($event)->getRequest()->shouldBe(['url' => 'https://example.com/', 'env' => ['REMOTE_ADDR' => '203.0.113.7']]);
     }
 
     public function it_filters_query_string_secret_from_url(): void

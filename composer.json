@@ -8,7 +8,7 @@
         "ext-json": "*",
         "ext-mbstring": "*",
         "doctrine/orm": "^2.10 | ^3.0",
-        "sentry/sentry-symfony": "^5.0",
+        "sentry/sentry-symfony": "^5.14",
         "symfony/config": "^7.4 || ^8.0",
         "symfony/dependency-injection": "^7.4 || ^8.0",
         "symfony/framework-bundle": "^7.4 || ^8.0",
@@ -31,7 +31,8 @@
         "phpunit/phpunit": "^9.5 || ^11.0",
         "symfony/browser-kit": "^7.4 || ^8.0",
         "symfony/phpunit-bridge": "^7.4 || ^8.0",
-        "symfony/var-exporter": "^7.4 || ^8.0"
+        "symfony/var-exporter": "^7.4 || ^8.0",
+        "symfony/security-http": "^7.4 || ^8.0"
     },
     "conflict": {
         "monolog/monolog": "<3.0",

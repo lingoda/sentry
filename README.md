@@ -7,7 +7,7 @@ for credentials, a Monolog handler, and serializers for event context.
 
 - PHP `^8.4`
 - Symfony `^7.4 || ^8.0`
-- `sentry/sentry-symfony` `^5.0`
+- `sentry/sentry-symfony` `^5.14`
 
 ## Installation
 
@@ -35,7 +35,9 @@ lingoda_sentry:
     traces_sample_rate: 0.0
 
     # Data sent with each event. See "What reaches Sentry".
-    send_default_pii: false
+    send_default_pii: false               # the logged-in user
+    send_ip: true                         # with send_default_pii: the client IP
+    user_id_resolver: ~                   # service ID; see "Choosing the user id"
     max_request_body_size: 'none'         # none, small, medium, always
 
     before_send: ~                        # service ID; replaces the default scrubber
@@ -63,20 +65,76 @@ in the application.
 
 ## What reaches Sentry
 
-By default an event carries no cookies, no client IP, no logged-in user and no request body.
+The bundle sets `sentry.options.data_collection` with every key explicit:
 
-- `send_default_pii: true` adds cookies (including the session cookie), the client IP and the user.
-  A copied session cookie is a working login, so enable it only where nobody can misuse it.
-- `max_request_body_size` controls the request body, independent of `send_default_pii`. Form posts
-  and JSON bodies can hold passwords, one-time codes and personal data.
+| Data | Sent | Option |
+|---|---|---|
+| Logged-in user (id) | only with `send_default_pii: true` | `send_default_pii`, `user_id_resolver` |
+| Client IP | with `send_default_pii: true`, unless `send_ip: false` | `send_ip` |
+| Cookies | never | a copied session cookie is a working login |
+| Request headers | yes, without sensitive ones (`Authorization`, `Cookie`, `*token*`, `*session*`, …) | |
+| Incoming request body | only when `max_request_body_size` is not `none` | `max_request_body_size` |
+| Outgoing HTTP bodies, database query values, AI inputs and outputs, queue data | never | |
+| URL query parameters | yes, without sensitive ones | |
+| Function arguments in stack frames | yes, without sensitive names | |
+| Console arguments | yes, values of sensitive names filtered (`--password=[Filtered]`) | |
 
-To opt in:
+`max_request_body_size` is independent of `send_default_pii`: form posts and JSON bodies can hold
+passwords, one-time codes and personal data.
+
+To send the user and the IP:
 
 ```yaml
 lingoda_sentry:
     send_default_pii: true
-    max_request_body_size: 'medium'
 ```
+
+To send the user without the IP:
+
+```yaml
+lingoda_sentry:
+    send_default_pii: true
+    send_ip: false
+```
+
+`send_ip: false` is applied by the default scrubber. An application that replaces `before_send`
+removes the IP itself.
+
+Any `sentry.options.data_collection` key can still be set in the application; application config
+wins over the prepended values. The legacy `sentry.options.send_default_pii` has no effect once
+`data_collection` is set.
+
+## Choosing the user id
+
+By default the user id is the login identifier (`UserInterface::getUserIdentifier()`), which is
+often the email address. To send something else, for example an internal id, implement
+`UserIdResolver`:
+
+```php
+namespace App\Infrastructure\Sentry;
+
+use App\Domain\User;
+use Lingoda\SentryBundle\Sentry\UserIdResolver;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+final readonly class InternalUserIdResolver implements UserIdResolver
+{
+    public function resolve(UserInterface $user): ?string
+    {
+        return $user instanceof User ? (string) $user->id() : null;
+    }
+}
+```
+
+```yaml
+lingoda_sentry:
+    send_default_pii: true
+    user_id_resolver: App\Infrastructure\Sentry\InternalUserIdResolver
+```
+
+The resolver is an ordinary autowired service; no tag is needed. It runs once per request, and on
+login. It only has an effect with `send_default_pii: true`. When it returns `null`, the event keeps
+the login identifier.
 
 ## Scrubber
 
@@ -104,6 +162,14 @@ monolog:
 ```
 
 `LogReleaseProcessor` adds the `x-release-id` request header to log records as `release`.
+
+## Upgrading to 5.1
+
+- The bundle sets `sentry.options.data_collection` instead of the legacy options. `send_default_pii`
+  now sends the user (and IP), never cookies.
+- 5.0 applications that want the user back set `send_default_pii: true`.
+- New: `send_ip` and `user_id_resolver`.
+- Requires `sentry/sentry-symfony` `^5.14`.
 
 ## Upgrading to 5.0
 

@@ -37,6 +37,7 @@ class SensitiveDataScrubber
     public function __construct(
         array $queryParamNames,
         array $valuePatterns,
+        private readonly bool $sendIp = true,
     ) {
         $this->validatePatterns($valuePatterns);
         $this->valuePatterns = array_values($valuePatterns);
@@ -45,6 +46,10 @@ class SensitiveDataScrubber
 
     public function __invoke(Event $event, ?EventHint $hint = null): ?Event
     {
+        if (!$this->sendIp) {
+            $this->removeClientIp($event);
+        }
+
         $message = $event->getMessage();
         if ($message !== null) {
             $event->setMessage(
@@ -259,5 +264,25 @@ class SensitiveDataScrubber
         // prefix: start-of-string or `?` or `&`; value stops at `&`, `#`, whitespace, quote, `>`.
         // The `#` inside the character class is escaped because we use `#` as the PCRE delimiter.
         return '#(^|[?&])(' . $alternatives . ')=[^&\#\s"\'>]+#i';
+    }
+
+    /**
+     * sentry-php puts the client IP into the user and into `request.env.REMOTE_ADDR`.
+     */
+    private function removeClientIp(Event $event): void
+    {
+        $user = $event->getUser();
+        if ($user?->getIpAddress() !== null) {
+            $event->setUser($user->setIpAddress(null));
+        }
+
+        $request = $event->getRequest();
+        if (isset($request['env']) && \is_array($request['env'])) {
+            unset($request['env']['REMOTE_ADDR']);
+            if ([] === $request['env']) {
+                unset($request['env']);
+            }
+            $event->setRequest($request);
+        }
     }
 }
