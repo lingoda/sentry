@@ -69,10 +69,11 @@ The bundle sets `sentry.options.data_collection` with every key explicit:
 
 | Data | Sent | Option |
 |---|---|---|
-| Logged-in user (id) | only with `send_default_pii: true` | `send_default_pii`, `user_id_resolver` |
+| Logged-in user (id) | only with `send_default_pii: true`; also on errors sent through Monolog after the request (see "Monolog handler") | `send_default_pii`, `user_id_resolver` |
 | Client IP | with `send_default_pii: true`, unless `send_ip: false` | `send_ip` |
 | Cookies | never | a copied session cookie is a working login |
 | Request headers | yes, without sensitive ones (`Authorization`, `Cookie`, `*token*`, `*session*`, …) | |
+| Request URL and method on errors sent through Monolog after the request | yes, the URL without the query string | |
 | Incoming request body | only when `max_request_body_size` is not `none` | `max_request_body_size` |
 | Outgoing HTTP bodies, database query values, AI inputs and outputs, queue data | never | |
 | URL query parameters | yes, without sensitive ones | |
@@ -163,12 +164,21 @@ monolog:
 
 `LogReleaseProcessor` adds the `x-release-id` request header to log records as `release`.
 
+`RequestContextProcessor` runs on every logger at log time, for warnings and above. It keeps the URL
+(without the query string), the HTTP method and the Sentry user of the current request on the record.
+Buffered handlers (`fingers_crossed`, `buffer`, `deduplication`) send records after the request has ended,
+when sentry-php no longer finds the request or the user; the handler then puts the kept values on the
+event. The user is kept only when `send_default_pii` allows it, and `send_ip: false` still removes the IP.
+Other log handlers print the kept values as an empty object, so the user and the IP do not reach the logs.
+
 ## Upgrading to 5.1
 
 - The bundle sets `sentry.options.data_collection` instead of the legacy options. `send_default_pii`
   now sends the user (and IP), never cookies.
 - 5.0 applications that want the user back set `send_default_pii: true`.
 - New: `send_ip` and `user_id_resolver`.
+- New: `RequestContextProcessor`. Errors that Monolog buffers and sends after the request now carry the
+  URL, the method and (with `send_default_pii`) the user. No configuration is needed.
 - Requires `sentry/sentry-symfony` `^5.14`.
 
 ## Upgrading to 5.0
