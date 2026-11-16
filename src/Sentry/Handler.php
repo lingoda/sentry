@@ -10,8 +10,10 @@ use Monolog\LogRecord;
 use Psr\Log\LogLevel;
 use function Sentry\addBreadcrumb;
 use Sentry\Breadcrumb;
+use Sentry\Event;
 use Sentry\Monolog\Handler as SentryHandler;
 use Sentry\State\Scope;
+use Sentry\UserDataBag;
 use function Sentry\withScope;
 
 /**
@@ -91,22 +93,47 @@ class Handler implements HandlerInterface
      */
     private function sendAsEvent(LogRecord $record): void
     {
-        if ($this->hasException($record)) {
-            $this->decoratedHandler->handle($record);
-
-            return;
-        }
-
         withScope(function (Scope $scope) use ($record): void {
-            $scope->setFingerprint([
-                'monolog',
-                $record->channel,
-                $record->level->getName(),
-                $this->groupingKey($record->message),
-            ]);
+            $context = $record->extra[RequestContextProcessor::EXTRA_KEY] ?? null;
+            if ($context instanceof RequestContext) {
+                $this->applyRequestContext($scope, $context);
+            }
+
+            if (!$this->hasException($record)) {
+                $scope->setFingerprint([
+                    'monolog',
+                    $record->channel,
+                    $record->level->getName(),
+                    $this->groupingKey($record->message),
+                ]);
+            }
 
             $this->decoratedHandler->handle($record);
         });
+    }
+
+    /**
+     * Fills only what the event does not have: an event sent during the request already carries both.
+     */
+    private function applyRequestContext(Scope $scope, RequestContext $context): void
+    {
+        if (null !== $context->userId && null === $scope->getUser()?->getId()) {
+            $user = UserDataBag::createFromUserIdentifier($context->userId);
+            if (null !== $context->ipAddress) {
+                $user->setIpAddress($context->ipAddress);
+            }
+            $scope->setUser($user);
+        }
+
+        if (null !== $context->url) {
+            $scope->addEventProcessor(static function (Event $event) use ($context): Event {
+                if ([] === $event->getRequest()) {
+                    $event->setRequest(['url' => $context->url, 'method' => $context->method]);
+                }
+
+                return $event;
+            });
+        }
     }
 
     private function hasException(LogRecord $record): bool
