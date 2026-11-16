@@ -32,3 +32,7 @@ services:
 
     Lingoda\SentryBundle\Sentry\LogReleaseProcessor:
         tags: { name: monolog.processor, handler: sentry }
+
+    # On every logger, not on a handler: it must run at log time, while the request still exists.
+    Lingoda\SentryBundle\Sentry\RequestContextProcessor:
+        tags: { name: monolog.processor }

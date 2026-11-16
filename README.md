@@ -163,6 +163,13 @@ monolog:
 
 `LogReleaseProcessor` adds the `x-release-id` request header to log records as `release`.
 
+`RequestContextProcessor` runs on every logger at log time, for warnings and above. It keeps the URL
+(without the query string), the HTTP method and the Sentry user of the current request on the record.
+Buffered handlers (`fingers_crossed`, `buffer`, `deduplication`) send records after the request has ended,
+when sentry-php no longer finds the request or the user; the handler then puts the kept values on the
+event. The user is kept only when `send_default_pii` allows it, and `send_ip: false` still removes the IP.
+Other log handlers print the kept values as an empty object, so the user and the IP do not reach the logs.
+
 ## Upgrading to 5.1
 
 - The bundle sets `sentry.options.data_collection` instead of the legacy options. `send_default_pii`
