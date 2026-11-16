@@ -1,0 +1,5 @@
+lingoda_sentry:
+    dsn: 'https://user@test.ingest.sentry.io/1'
+    environment: 'test'
+    send_default_pii: true
+    user_id_resolver: Lingoda\SentryBundle\Tests\Sentry\Fixture\InternalUserIdResolver

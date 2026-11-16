@@ -1152,7 +1152,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     namespace?: scalar|Param|null, // Default: null
  *     release?: scalar|Param|null, // Default: "none"
  *     traces_sample_rate?: float|Param, // Default: 0.0
- *     send_default_pii?: bool|Param, // Sends cookies (the session), the client IP and the logged-in user with each event. Off by default: a copied session cookie is a working login. // Default: false
+ *     send_default_pii?: bool|Param, // Sends the logged-in user (and, with send_ip, the client IP) with each event. Cookies are never sent: a copied session cookie is a working login. // Default: false
+ *     send_ip?: bool|Param, // Only with send_default_pii. False removes the client IP from the user before the event is sent. // Default: true
+ *     user_id_resolver?: scalar|Param|null, // Service ID of a Lingoda\SentryBundle\Sentry\UserIdResolver. Null keeps the login identifier as the user id. // Default: null
  *     max_request_body_size?: "none"|"small"|"medium"|"always"|Param, // Request body sent with each event. Independent of send_default_pii; form posts hold passwords, codes and personal data. // Default: "none"
  *     before_send?: scalar|Param|null, // Service ID of a callable __invoke(Event, ?EventHint): ?Event. Overrides the default SensitiveDataScrubber. Mirror upstream sentry-symfony: no @ prefix. // Default: null
  *     before_breadcrumb?: scalar|Param|null, // Service ID of a callable __invoke(Breadcrumb, ?BreadcrumbHint): ?Breadcrumb. No @ prefix. // Default: null

@@ -37,6 +37,7 @@ class SensitiveDataScrubber
     public function __construct(
         array $queryParamNames,
         array $valuePatterns,
+        private readonly bool $sendIp = true,
     ) {
         $this->validatePatterns($valuePatterns);
         $this->valuePatterns = array_values($valuePatterns);
@@ -45,6 +46,11 @@ class SensitiveDataScrubber
 
     public function __invoke(Event $event, ?EventHint $hint = null): ?Event
     {
+        $user = $event->getUser();
+        if (!$this->sendIp && $user?->getIpAddress() !== null) {
+            $event->setUser($user->setIpAddress(null));
+        }
+
         $message = $event->getMessage();
         if ($message !== null) {
             $event->setMessage(
