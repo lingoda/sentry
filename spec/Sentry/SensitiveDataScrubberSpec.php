@@ -53,6 +53,27 @@ class SensitiveDataScrubberSpec extends ObjectBehavior
         $user->getId()->shouldBe('42');
     }
 
+    public function it_removes_the_request_ip_when_send_ip_is_off(): void
+    {
+        $this->beConstructedWith(
+            Configuration::DEFAULT_QUERY_PARAM_NAMES,
+            Configuration::DEFAULT_VALUE_PATTERNS,
+            false,
+        );
+        $event = Event::createEvent();
+        $event->setRequest(['url' => 'https://example.com/', 'env' => ['REMOTE_ADDR' => '203.0.113.7']]);
+
+        $this->__invoke($event)->getRequest()->shouldBe(['url' => 'https://example.com/']);
+    }
+
+    public function it_keeps_the_request_ip_by_default(): void
+    {
+        $event = Event::createEvent();
+        $event->setRequest(['url' => 'https://example.com/', 'env' => ['REMOTE_ADDR' => '203.0.113.7']]);
+
+        $this->__invoke($event)->getRequest()->shouldBe(['url' => 'https://example.com/', 'env' => ['REMOTE_ADDR' => '203.0.113.7']]);
+    }
+
     public function it_filters_query_string_secret_from_url(): void
     {
         $value = 'https://example.com/v1/foo?key=AIzaSyAbCdEfGhIjKlMnOpQrStUvWxYz1234567&page=2#frag';

@@ -32,6 +32,7 @@ final class LingodaSentryExtensionTest extends KernelTestCase
         self::assertSame(['inputs' => false, 'outputs' => false], $dataCollection->getGenAi());
         self::assertSame(KeyValueCollectionBehavior::MODE_DENY_LIST, $dataCollection->getStackFrameVariables()->getMode());
         self::assertSame('none', $options->getMaxRequestBodySize());
+        self::assertContains('forwarded', $dataCollection->getHttpHeaders()['request']->getTerms());
         self::assertFalse(self::getContainer()->has(UserContextListener::class));
     }
 
@@ -44,6 +45,7 @@ final class LingodaSentryExtensionTest extends KernelTestCase
 
         self::assertTrue($dataCollection->shouldCollectUserInfo());
         self::assertSame(KeyValueCollectionBehavior::MODE_OFF, $dataCollection->getCookies()->getMode());
+        self::assertSame([], $dataCollection->getHttpHeaders()['request']->getTerms());
     }
 
     public function testARequestBodySizeCollectsIncomingRequestBodiesOnly(): void
@@ -61,6 +63,23 @@ final class LingodaSentryExtensionTest extends KernelTestCase
         self::assertSame('medium', $options['max_request_body_size']);
         self::assertSame(['incomingRequest'], $options['data_collection']['http_bodies']);
         self::assertArrayNotHasKey('send_default_pii', $options);
+    }
+
+    public function testPiiWithoutTheIpFiltersTheClientIpHeaders(): void
+    {
+        $container = new ContainerBuilder();
+        $container->prependExtensionConfig('lingoda_sentry', [
+            'dsn' => 'https://user@test.ingest.sentry.io/1',
+            'environment' => 'test',
+            'send_default_pii' => true,
+            'send_ip' => false,
+        ]);
+
+        (new LingodaSentryExtension())->prepend($container);
+
+        $terms = $container->getExtensionConfig('sentry')[0]['options']['data_collection']['http_headers']['request']['terms'];
+        self::assertContains('forwarded', $terms);
+        self::assertContains('x-real-ip', $terms);
     }
 
     private function clientOptions(): Options

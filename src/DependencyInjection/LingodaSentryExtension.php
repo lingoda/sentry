@@ -21,6 +21,21 @@ use Symfony\Component\Yaml\Yaml;
 class LingodaSentryExtension extends ConfigurableExtension implements PrependExtensionInterface
 {
     /**
+     * Headers that carry the client IP behind a proxy. Matched as part of the name, so `forwarded` also covers
+     * `x-forwarded-*`.
+     */
+    private const array CLIENT_IP_HEADERS = [
+        'forwarded',
+        'x-real-ip',
+        'x-client-ip',
+        'x-cluster-client-ip',
+        'cf-connecting-ip',
+        'true-client-ip',
+        'fastly-client-ip',
+        'x-envoy-external-address',
+    ];
+
+    /**
      * @param array<string, mixed> $mergedConfig
      */
     protected function loadInternal(array $mergedConfig, ContainerBuilder $container): void
@@ -92,11 +107,15 @@ class LingodaSentryExtension extends ConfigurableExtension implements PrependExt
         $sentryConfig['options']['tags']['namespace'] = $config['namespace'];
         $sentryConfig['options']['traces_sample_rate'] = $config['traces_sample_rate'];
         $sentryConfig['options']['max_request_body_size'] = $config['max_request_body_size'];
+        $sendIp = $config['send_default_pii'] && $config['send_ip'];
         // Every key is explicit: the defaults of data_collection collect more than this bundle wants to send.
         $sentryConfig['options']['data_collection'] = [
             'user_info' => $config['send_default_pii'],
             'cookies' => ['mode' => 'off'],
-            'http_headers' => ['request' => ['mode' => 'denyList'], 'response' => ['mode' => 'denyList']],
+            'http_headers' => [
+                'request' => ['mode' => 'denyList', 'terms' => $sendIp ? [] : self::CLIENT_IP_HEADERS],
+                'response' => ['mode' => 'denyList'],
+            ],
             'http_bodies' => 'none' === $config['max_request_body_size'] ? [] : ['incomingRequest'],
             'url_query_params' => ['mode' => 'denyList'],
             'gen_ai' => ['inputs' => false, 'outputs' => false],
