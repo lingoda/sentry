@@ -63,6 +63,8 @@ class LingodaSentryExtension extends ConfigurableExtension implements PrependExt
         $sentryConfig['options']['release'] = $config['release'];
         $sentryConfig['options']['tags']['namespace'] = $config['namespace'];
         $sentryConfig['options']['traces_sample_rate'] = $config['traces_sample_rate'];
+        $sentryConfig['options']['send_default_pii'] = $config['send_default_pii'];
+        $sentryConfig['options']['max_request_body_size'] = $config['max_request_body_size'];
 
         $sentryConfig['options']['class_serializers'] = array_fill_keys(
             $config['json_serialize'],

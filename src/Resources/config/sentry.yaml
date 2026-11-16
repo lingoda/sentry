@@ -7,6 +7,5 @@ sentry:
         default_integrations: true
 #        send_attempts: 3
         attach_stacktrace: true
-        send_default_pii: true
         ignore_exceptions:
             - Symfony\Component\Messenger\Exception\RejectRedeliveredMessageException
