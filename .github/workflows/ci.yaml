@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: ['8.3', '8.4']
-        symfony: ['6.4', '7.3', '8.0']
+        php: ['8.4', '8.5']
+        symfony: ['7.4', '8.1']
       fail-fast: false
     steps:
       -   name: checkout
@@ -36,7 +36,10 @@ jobs:
           run: |
             composer require --no-update symfony/flex
             composer config --no-plugins allow-plugins.symfony/flex true
-            SYMFONY_REQUIRE=${{ matrix.symfony }} composer install --classmap-authoritative --prefer-dist
+            # Flex only pins the Symfony version here. Installing with it would also run its recipes,
+            # which write an application (src/Kernel.php, config/, .env) into this bundle.
+            SYMFONY_REQUIRE=${{ matrix.symfony }} composer update --no-install --no-interaction
+            composer install --no-plugins --classmap-authoritative --prefer-dist --no-interaction
 
       -   name: Lint
           if: ${{ !cancelled() }}

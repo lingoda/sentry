@@ -1152,6 +1152,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     namespace?: scalar|Param|null, // Default: null
  *     release?: scalar|Param|null, // Default: "none"
  *     traces_sample_rate?: float|Param, // Default: 0.0
+ *     send_default_pii?: bool|Param, // Sends cookies (the session), the client IP and the logged-in user with each event. Off by default: a copied session cookie is a working login. // Default: false
+ *     max_request_body_size?: "none"|"small"|"medium"|"always"|Param, // Request body sent with each event. Independent of send_default_pii; form posts hold passwords, codes and personal data. // Default: "none"
  *     before_send?: scalar|Param|null, // Service ID of a callable __invoke(Event, ?EventHint): ?Event. Overrides the default SensitiveDataScrubber. Mirror upstream sentry-symfony: no @ prefix. // Default: null
  *     before_breadcrumb?: scalar|Param|null, // Service ID of a callable __invoke(Breadcrumb, ?BreadcrumbHint): ?Breadcrumb. No @ prefix. // Default: null
  *     json_serialize?: list<scalar|Param|null>,

@@ -39,11 +39,9 @@ final class TestKernel extends Kernel
         $loader->load(__DIR__ . '/config/config.yaml');
         $loader->load(__DIR__ . '/config/services.yaml');
 
-        if (PHP_VERSION_ID >= 80400) {
-            $container->loadFromExtension('doctrine', [
-                'orm' => ['enable_native_lazy_objects' => true],
-            ]);
-        }
+        $container->loadFromExtension('doctrine', [
+            'orm' => ['enable_native_lazy_objects' => true],
+        ]);
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void
