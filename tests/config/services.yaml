@@ -8,6 +8,10 @@ services:
         alias: Lingoda\SentryBundle\Sentry\RepresentationSerializer
         public: true
 
+    test.object_json_serializer:
+        alias: Lingoda\SentryBundle\Sentry\Serializer\ObjectJsonSerializer
+        public: true
+
     Lingoda\SentryBundle\Tests\Sentry\TestHandler:
         decorates: Lingoda\SentryBundle\Sentry\Handler
     Lingoda\SentryBundle\Tests\Controller\TestController:

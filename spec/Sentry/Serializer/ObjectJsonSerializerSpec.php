@@ -4,6 +4,7 @@ declare(strict_types = 1);
 
 namespace spec\Lingoda\SentryBundle\Sentry\Serializer;
 
+use Lingoda\SentryBundle\Sentry\Serializer\EntityReferenceNormalizer;
 use Lingoda\SentryBundle\Sentry\Serializer\ObjectJsonSerializer;
 use PhpSpec\ObjectBehavior;
 use stdClass;
@@ -25,7 +26,7 @@ class ObjectJsonSerializerSpec extends ObjectBehavior
     {
         $object = new stdClass();
 
-        $serializer->serialize($object, 'json')->willReturn('serializedObject')->shouldBeCalledOnce();
+        $serializer->serialize($object, 'json', [EntityReferenceNormalizer::CONTEXT_KEY => true])->willReturn('serializedObject')->shouldBeCalledOnce();
 
         $this($object)->shouldBe(['json' => 'serializedObject']);
     }

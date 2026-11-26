@@ -27,7 +27,7 @@ class ObjectJsonSerializer
     public function __invoke(object $message): array
     {
         return [
-            'json' => $this->serializer->serialize($message, 'json'),
+            'json' => $this->serializer->serialize($message, 'json', [EntityReferenceNormalizer::CONTEXT_KEY => true]),
         ];
     }
 }
