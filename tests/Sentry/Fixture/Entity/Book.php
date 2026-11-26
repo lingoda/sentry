@@ -9,12 +9,10 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 class Book
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
     public function __construct(
+        #[ORM\Id]
+        #[ORM\Column]
+        private int $id,
         #[ORM\Column]
         private string $title,
         #[ORM\ManyToOne(inversedBy: 'books')]
@@ -22,7 +20,7 @@ class Book
     ) {
     }
 
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
     }

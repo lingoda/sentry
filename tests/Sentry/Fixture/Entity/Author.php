@@ -11,23 +11,21 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity]
 class Author
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
     /** @var Collection<int, Book> */
     #[ORM\OneToMany(targetEntity: Book::class, mappedBy: 'author', cascade: ['persist'])]
     private Collection $books;
 
     public function __construct(
+        #[ORM\Id]
+        #[ORM\Column]
+        private int $id,
         #[ORM\Column]
         private string $name,
     ) {
         $this->books = new ArrayCollection();
     }
 
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
     }
@@ -43,8 +41,8 @@ class Author
         return $this->books;
     }
 
-    public function writeBook(string $title): void
+    public function writeBook(int $id, string $title): void
     {
-        $this->books->add(new Book($title, $this));
+        $this->books->add(new Book($id, $title, $this));
     }
 }

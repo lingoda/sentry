@@ -63,16 +63,13 @@ final class ObjectJsonSerializerTest extends KernelTestCase
 
     private function storeAuthorWithTwoBooks(): int
     {
-        $author = new Author('John');
-        $author->writeBook('First');
-        $author->writeBook('Second');
+        $author = new Author(7, 'John');
+        $author->writeBook(1, 'First');
+        $author->writeBook(2, 'Second');
         $this->entityManager->persist($author);
         $this->entityManager->flush();
         $this->entityManager->clear();
 
-        $authorId = $author->getId();
-        self::assertNotNull($authorId);
-
-        return $authorId;
+        return $author->getId();
     }
 }
