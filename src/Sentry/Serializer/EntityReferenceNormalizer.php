@@ -49,7 +49,7 @@ final class EntityReferenceNormalizer implements NormalizerInterface, Normalizer
 
         $class = $data instanceof Proxy ? get_parent_class($data) : $data::class;
 
-        if ($class === false || $this->entityManager->getMetadataFactory()->isTransient($class)) {
+        if ($class === false || (new \ReflectionClass($class))->isAnonymous() || $this->entityManager->getMetadataFactory()->isTransient($class)) {
             return false;
         }
 
