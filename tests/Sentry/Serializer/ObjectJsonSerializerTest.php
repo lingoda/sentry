@@ -5,12 +5,15 @@ declare(strict_types = 1);
 namespace Lingoda\SentryBundle\Tests\Sentry\Serializer;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\PersistentCollection;
 use Doctrine\ORM\Tools\SchemaTool;
 use Lingoda\SentryBundle\Sentry\Serializer\ObjectJsonSerializer;
 use Lingoda\SentryBundle\Tests\Sentry\Fixture\AuthorMoved;
 use Lingoda\SentryBundle\Tests\Sentry\Fixture\AuthorRenamed;
+use Lingoda\SentryBundle\Tests\Sentry\Fixture\BooksListed;
 use Lingoda\SentryBundle\Tests\Sentry\Fixture\Entity\Address;
 use Lingoda\SentryBundle\Tests\Sentry\Fixture\Entity\Author;
+use Lingoda\SentryBundle\Tests\Sentry\Fixture\Entity\Book;
 use Lingoda\SentryBundle\Tests\Sentry\Fixture\Review;
 use Lingoda\SentryBundle\Tests\Sentry\Fixture\ReviewPosted;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -44,7 +47,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
         $serialized = ($this->serializer)(new AuthorRenamed($author, 'Jane'));
 
         self::assertSame(
-            ['author' => ['class' => Author::class, 'id' => ['id' => $authorId]], 'newName' => 'Jane'],
+            ['author' => ['class' => Author::class, 'data' => ['id' => $authorId]], 'newName' => 'Jane'],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
         );
         self::assertSame(0, $this->entityManager->getUnitOfWork()->size());
@@ -59,7 +62,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
         $serialized = ($this->serializer)(new AuthorRenamed($reference, 'Jane'));
 
         self::assertSame(
-            ['author' => ['class' => Author::class, 'id' => ['id' => $authorId]], 'newName' => 'Jane'],
+            ['author' => ['class' => Author::class, 'data' => ['id' => $authorId]], 'newName' => 'Jane'],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
         );
         self::assertTrue($this->entityManager->getUnitOfWork()->isUninitializedObject($reference));
@@ -75,7 +78,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
 
         self::assertSame(
             [
-                'author' => ['class' => Author::class, 'id' => ['id' => $authorId]],
+                'author' => ['class' => Author::class, 'data' => ['id' => $authorId]],
                 'address' => ['street' => 'Main Street 1', 'city' => 'Berlin'],
             ],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
@@ -93,13 +96,41 @@ final class ObjectJsonSerializerTest extends KernelTestCase
         self::assertSame(
             [
                 'review' => [
-                    'reviewer' => ['class' => Author::class, 'id' => ['id' => $authorId]],
+                    'reviewer' => ['class' => Author::class, 'data' => ['id' => $authorId]],
                     'text' => 'Great read',
                 ],
             ],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
         );
         self::assertTrue($this->entityManager->getUnitOfWork()->isUninitializedObject($reference));
+    }
+
+    public function testAnUninitializedCollectionIsSerializedWithoutLoadingIt(): void
+    {
+        $authorId = $this->storeAuthorWithTwoBooks();
+        $author = $this->entityManager->find(Author::class, $authorId);
+        self::assertNotNull($author);
+        $books = $author->getBooks();
+        self::assertInstanceOf(PersistentCollection::class, $books);
+        $this->entityManager->clear();
+
+        $serialized = ($this->serializer)(new BooksListed($books));
+
+        self::assertSame(
+            ['books' => ['class' => Book::class, 'initialized' => false]],
+            json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
+        );
+        self::assertFalse($books->isInitialized());
+        self::assertSame(0, $this->entityManager->getUnitOfWork()->size());
+    }
+
+    public function testAnAnonymousObjectIsSerializedWithItsFields(): void
+    {
+        $serialized = ($this->serializer)(new class () {
+            public string $text = 'Great read';
+        });
+
+        self::assertSame(['text' => 'Great read'], json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR));
     }
 
     private function storeAuthorWithTwoBooks(): int
