@@ -49,7 +49,11 @@ final class EntityReferenceNormalizer implements NormalizerInterface, Normalizer
 
         $class = $data instanceof Proxy ? get_parent_class($data) : $data::class;
 
-        return $class !== false && !$this->entityManager->getMetadataFactory()->isTransient($class);
+        if ($class === false || $this->entityManager->getMetadataFactory()->isTransient($class)) {
+            return false;
+        }
+
+        return !$this->entityManager->getClassMetadata($class)->isEmbeddedClass;
     }
 
     public function getSupportedTypes(?string $format): array
