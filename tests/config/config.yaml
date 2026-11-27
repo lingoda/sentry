@@ -25,6 +25,11 @@ doctrine:
         naming_strategy: doctrine.orm.naming_strategy.underscore_number_aware
         auto_mapping: true
         enable_lazy_ghost_objects: true
+        mappings:
+            Fixture:
+                type: attribute
+                dir: '%kernel.project_dir%/Sentry/Fixture/Entity'
+                prefix: 'Lingoda\SentryBundle\Tests\Sentry\Fixture\Entity'
 
 lingoda_sentry:
     dsn: 'https://user@test.ingest.sentry.io/1'

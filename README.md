@@ -43,7 +43,7 @@ lingoda_sentry:
     before_send: ~                        # service ID; replaces the default scrubber
     before_breadcrumb: ~                  # service ID
 
-    json_serialize: []                    # classes and interfaces serialized as JSON in event context
+    json_serialize: []                    # classes and interfaces serialized as JSON; entities in them as class and identifiers, the same as entities in stack frames
     namespace_serialize: []               # namespaces whose objects are serialized as JSON
 
     scrubber:

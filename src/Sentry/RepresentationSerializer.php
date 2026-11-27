@@ -6,9 +6,10 @@ namespace Lingoda\SentryBundle\Sentry;
 
 use DateTimeInterface;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\Persistence\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\Mapping\MappingException;
 use Lingoda\SentryBundle\Sentry\Serializer\NamespaceJsonSerializer;
+use Lingoda\SentryBundle\Sentry\Serializer\ObjectJsonSerializer;
 use ReflectionException;
 use Webmozart\Assert\Assert;
 use Sentry\Options;
@@ -26,6 +27,7 @@ class RepresentationSerializer extends BaseRepresentationSerializer
     private EntityManagerInterface $entityManager;
     private PropertyAccessor $propertyAccessor;
     private NamespaceJsonSerializer $namespaceJsonSerializer;
+    private ObjectJsonSerializer $objectJsonSerializer;
 
     /**
      * @var array<string, ClassMetadata<object>|null>
@@ -35,13 +37,15 @@ class RepresentationSerializer extends BaseRepresentationSerializer
     public function __construct(
         Options $options,
         EntityManagerInterface $entityManager,
-        NamespaceJsonSerializer $namespaceJsonSerializer
+        NamespaceJsonSerializer $namespaceJsonSerializer,
+        ObjectJsonSerializer $objectJsonSerializer
     ) {
         parent::__construct($options);
 
         $this->entityManager = $entityManager;
         $this->propertyAccessor = PropertyAccess::createPropertyAccessor();
         $this->namespaceJsonSerializer = $namespaceJsonSerializer;
+        $this->objectJsonSerializer = $objectJsonSerializer;
     }
 
     /**
@@ -53,6 +57,7 @@ class RepresentationSerializer extends BaseRepresentationSerializer
     {
         return match (true) {
             $this->isEntity($value) => $this->serializeEntity($value),
+            $this->isEmbeddable($value) => ($this->objectJsonSerializer)($value),
             $value instanceof DateTimeInterface => $this->serializeDateTime($value),
             $this->namespaceJsonSerializer->inNamespace($value) => ($this->namespaceJsonSerializer)($value),
             default => parent::serializeValue($value),
@@ -64,11 +69,12 @@ class RepresentationSerializer extends BaseRepresentationSerializer
      */
     protected function serializeEntity(object $value): array
     {
-        $data = $this->extractIdentifiers($value);
+        $metadata = $this->getClassMetadataFor(\get_class($value));
+        Assert::notNull($metadata);
 
         return [
-            'class' => \get_class($value),
-            'data' => $data,
+            'class' => $metadata->getName(),
+            'data' => $this->extractIdentifiers($value),
         ];
     }
 
@@ -94,7 +100,13 @@ class RepresentationSerializer extends BaseRepresentationSerializer
     protected function isEntity(mixed $value): bool
     {
         return \is_object($value)
-            && $this->getClassMetadataFor(\get_class($value)) !== null;
+            && $this->getClassMetadataFor(\get_class($value))?->isEmbeddedClass === false;
+    }
+
+    private function isEmbeddable(mixed $value): bool
+    {
+        return \is_object($value)
+            && $this->getClassMetadataFor(\get_class($value))?->isEmbeddedClass === true;
     }
 
     private function serializeDateTime(DateTimeInterface $value): string
