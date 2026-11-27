@@ -69,11 +69,12 @@ class RepresentationSerializer extends BaseRepresentationSerializer
      */
     protected function serializeEntity(object $value): array
     {
-        $data = $this->extractIdentifiers($value);
+        $metadata = $this->getClassMetadataFor(\get_class($value));
+        Assert::notNull($metadata);
 
         return [
-            'class' => \get_class($value),
-            'data' => $data,
+            'class' => $metadata->getName(),
+            'data' => $this->extractIdentifiers($value),
         ];
     }
 

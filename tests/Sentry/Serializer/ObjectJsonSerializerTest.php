@@ -47,7 +47,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
         $serialized = ($this->serializer)(new AuthorRenamed($author, 'Jane'));
 
         self::assertSame(
-            ['author' => ['class' => Author::class, 'id' => ['id' => $authorId]], 'newName' => 'Jane'],
+            ['author' => ['class' => Author::class, 'data' => ['id' => $authorId]], 'newName' => 'Jane'],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
         );
         self::assertSame(0, $this->entityManager->getUnitOfWork()->size());
@@ -62,7 +62,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
         $serialized = ($this->serializer)(new AuthorRenamed($reference, 'Jane'));
 
         self::assertSame(
-            ['author' => ['class' => Author::class, 'id' => ['id' => $authorId]], 'newName' => 'Jane'],
+            ['author' => ['class' => Author::class, 'data' => ['id' => $authorId]], 'newName' => 'Jane'],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
         );
         self::assertTrue($this->entityManager->getUnitOfWork()->isUninitializedObject($reference));
@@ -78,7 +78,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
 
         self::assertSame(
             [
-                'author' => ['class' => Author::class, 'id' => ['id' => $authorId]],
+                'author' => ['class' => Author::class, 'data' => ['id' => $authorId]],
                 'address' => ['street' => 'Main Street 1', 'city' => 'Berlin'],
             ],
             json_decode($serialized['json'], true, flags: \JSON_THROW_ON_ERROR),
@@ -96,7 +96,7 @@ final class ObjectJsonSerializerTest extends KernelTestCase
         self::assertSame(
             [
                 'review' => [
-                    'reviewer' => ['class' => Author::class, 'id' => ['id' => $authorId]],
+                    'reviewer' => ['class' => Author::class, 'data' => ['id' => $authorId]],
                     'text' => 'Great read',
                 ],
             ],

@@ -33,7 +33,7 @@ final class EntityReferenceNormalizer implements NormalizerInterface, Normalizer
 
         return [
             'class' => $metadata->getName(),
-            'id' => $this->normalizer->normalize($metadata->getIdentifierValues($data), $format, $context),
+            'data' => $this->normalizer->normalize($metadata->getIdentifierValues($data), $format, $context),
         ];
     }
 
